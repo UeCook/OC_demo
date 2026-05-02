@@ -100,31 +100,34 @@ Bento Grid 风格的个人介绍页。
 
 导航栏的滑动区域（`.nav-track`）采用精心设计的三层堆叠结构，在同一空间内实现了「视觉指示」「点击导航」「拖拽滑动」三种交互互不干扰：
 
-```
-┌─────────────────────────────────────────────────┐
-│  .nav-track  (position: relative)                │
-│                                                   │
-│  ┌─── z-index: 1 ──────────────────────────────┐ │
-│  │  .nav-indicator  (绿色背景滑块)               │ │
-│  │  pointer-events: none                        │ │
-│  │  只负责视觉，不拦截任何鼠标事件                 │ │
-│  └──────────────────────────────────────────────┘ │
-│                                                   │
-│  ┌─── z-index: 2 ──────────────────────────────┐ │
-│  │  .nav-item × 4  (导航文字：1 2 3 4)          │ │
-│  │  pointer-events: auto                        │ │
-│  │  负责点击跳转到对应页面区域                     │ │
-│  └──────────────────────────────────────────────┘ │
-│                                                   │
-│  ┌─── z-index: 3 ──────────────────────────────┐ │
-│  │  .nav-drag-handle  (透明拖拽手柄)             │ │
-│  │  pointer-events: auto, cursor: grab          │ │
-│  │  background: transparent                     │ │
-│  │  覆盖在最上层，捕获拖拽事件                     │ │
-│  └──────────────────────────────────────────────┘ │
-│                                                   │
-└─────────────────────────────────────────────────┘
-```
+**各层职责**：
+
+| 层级 | 元素 | z-index | pointer-events | 作用 |
+|------|------|---------|----------------|------|
+| 底层 | `.nav-indicator` | 1 | `none` | 绿色圆角矩形背景，随滚动/拖拽平滑移动，纯视觉层 |
+| 中层 | `.nav-item` | 2 | `auto` | 导航文字链接，处理点击事件，跳转到对应页面区域 |
+| 顶层 | `.nav-drag-handle` | 3 | `auto` | 透明拖拽手柄，捕获鼠标/触摸拖拽，同步移动 indicator |
+
+**三层如何协同工作**：
+
+1. **用户点击导航项** → 点击事件穿透透明的 drag-handle 层，由中层 `.nav-item`（z-index: 2）捕获 → 调用 `navigateTo()` 平滑滚动到目标区域 → 同时更新 indicator 位置
+2. **用户拖拽滑块** → 顶层 `.nav-drag-handle`（z-index: 3）捕获 `mousedown/touchstart` → 计算偏移量 → 同步移动 indicator 和 drag-handle 自身 → 同时调用 `updatePageFromIndicator()` 实时更新页面滚动位置
+3. **用户滚动页面** → `scroll` 事件触发 → `updateIndicatorFromScroll()` 计算当前所在区域 → 同步更新 indicator 位置和导航项高亮状态 → 使用 `requestAnimationFrame` 节流
+
+**关键设计细节**：
+
+- indicator 和 drag-handle 始终保持相同的 `transform: translateX() translateY(-50%)` 值，确保位置完全同步
+- drag-handle 的 `background: transparent` 使其视觉上不可见，不影响下层文字显示
+- 拖拽时临时移除 `transition`（`navIndicator.style.transition = 'none'`）以实现实时跟随，松手后恢复过渡动画
+- `isDragging`、`isSmoothScrolling`、`ticking` 三个标志位防止滚动/拖拽/动画之间的状态冲突
+
+### 其他功能
+
+- **智能显隐**：首页区域 `opacity: 0` + `visibility: hidden` 隐藏，滚动超过首屏一半后渐入
+- **返回首页**：左侧箭头按钮，平滑滚动回顶部
+- **主题切换对齐**：页面左上角的主题切换按钮通过 JS 计算位置，动态对齐到导航栏内占位符（`.nav-icon-placeholder`）的坐标
+- **备案信息**：底部右侧展示 ICP 备案号和公安网备号（含图标）
+- **性能**：`requestAnimationFrame` 节流 + `{ passive: true }` 优化滚动监听
 
 ---
 
