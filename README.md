@@ -2,9 +2,7 @@
 
 > 万物皆可浸染，唯你温暖如初。
 
-**站点地址**：[oc.uecook.top](https://oc.uecook.top)
-
-**版权所有**：© 2014–2026 圣堂之魂 / UeCook
+**演示地址**：[oc.uecook.top](https://oc.uecook.top)
 
 ---
 
